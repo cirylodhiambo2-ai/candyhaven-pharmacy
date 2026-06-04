@@ -31,7 +31,6 @@
         .bg-daily { background: linear-gradient(135deg, #11998e, #38ef7d); }
         .bg-weekly { background: linear-gradient(135deg, #3a7bd5, #3a6073); }
         .bg-lifetime { background: linear-gradient(135deg, #6441A5, #2a0845); }
-        .mpesa-section { background: #e8f5e9; padding: 15px; border-radius: 6px; border-left: 4px solid #28a745; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -73,22 +72,18 @@
             <div style="max-width: 500px; margin: 0 auto;">
                 <form id="saleForm">
                     <div class="form-group">
-    <label>Select Medicine Name</label>
-    <select id="saleMedicineId" required>
-        <option value="">-- Select Medicine --</option>
-    </select>
-</div>
-
+                        <label>Select Medicine Name</label>
+                        <select id="saleMedicineId" required>
+                            <option value="">-- Choose Medicine --</option>
+                        </select>
+                    </div>
                     <div class="form-group"><label>Quantity Sold</label><input type="number" id="saleQuantity" required value="1"></div>
                     <div class="form-group">
                         <label>Payment Mode</label>
                         <select id="paymentMode" onchange="toggleMpesaFields()">
                             <option value="CASH">Cash Payment</option>
-                            <option value="MPESA">M-Pesa Pochi Push</option>
+                            <option value="MPESA">M-Pesa (Manual Verification)</option>
                         </select>
-                    </div>
-                    <div id="mpesaBox" class="mpesa-section" style="display: none;">
-                        <div class="form-group"><label>Customer Mobile Number</label><input type="text" id="mpesaPhone" placeholder="e.g., 0712345678"></div>
                     </div>
                     <button type="submit" id="checkoutBtn" style="margin-top: 10px;">Complete Transaction</button>
                 </form>
@@ -141,7 +136,6 @@
     </div>
 
     <script>
-        // NOTE: Change this URL once you host your Python backend on the cloud (e.g., Render or Railway)
         const API_URL = "https://candyhaven-backend.onrender.com";
 
         let authToken = localStorage.getItem("token") || "";
@@ -200,16 +194,14 @@
             if(panelId === 'profitPanel') fetchFinancialsAndHistory();
         }
 
+        // UPDATED: Simply updates the button visual text feedback safely
         function toggleMpesaFields() {
             const mode = document.getElementById("paymentMode").value;
-            const mpesaBox = document.getElementById("mpesaBox");
             const checkoutBtn = document.getElementById("checkoutBtn");
             if (mode === "MPESA") {
-                mpesaBox.style.display = "block";
-                checkoutBtn.textContent = "📲 Send M-Pesa Pochi Push";
+                checkoutBtn.textContent = "Log M-Pesa Transaction";
                 checkoutBtn.style.backgroundColor = "#28a745";
             } else {
-                mpesaBox.style.display = "none";
                 checkoutBtn.textContent = "Complete Transaction";
                 checkoutBtn.style.backgroundColor = "#007bff";
             }
@@ -219,10 +211,16 @@
             try {
                 const res = await secureFetch(`${API_URL}/medicines`);
                 const medicines = await res.json();
+                
                 const tbody = document.querySelector("#inventoryTable tbody");
                 tbody.innerHTML = ""; 
+                
+                const saleSelect = document.getElementById("saleMedicineId");
+                saleSelect.innerHTML = '<option value="">-- Choose Medicine --</option>';
+
                 medicines.forEach(med => {
                     tbody.innerHTML += `<tr><td>${med.medicine_id}</td><td><strong>${med.name}</strong></td><td><code>${med.batch_number || 'N/A'}</code></td><td>${med.category}</td><td>${med.stock_quantity} units</td><td>${med.selling_price.toFixed(2)}</td><td>${med.expiry_date}</td></tr>`;
+                    saleSelect.innerHTML += `<option value="${med.medicine_id}">${med.name} (${med.stock_quantity} units left)</option>`;
                 });
             } catch (err) {
                 console.error("Inventory error:", err);
@@ -264,25 +262,25 @@
             await secureFetch(`${API_URL}/medicines`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
             alert("Stock Added successfully!");
             document.getElementById("medicineForm").reset();
+            fetchInventory(); // Instantly update dropdown metrics
         });
 
+        // UPDATED: Removed the API call that attempts to trigger the STK Push prompt to her phone
         document.getElementById("saleForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const medId = parseInt(document.getElementById("saleMedicineId").value);
             const qty = parseInt(document.getElementById("saleQuantity").value);
-            const paymentMode = document.getElementById("paymentMode").value;
-
-            if (paymentMode === "MPESA") {
-                const phone = document.getElementById("mpesaPhone").value;
-                if (!phone) { alert("Enter phone number!"); return; }
-                alert("Triggering secure STK push...");
-                await secureFetch(`${API_URL}/mpesa/stkpush?phone=${phone}&amount=1`, { method: "POST" });
-            }
 
             const payload = { items: [{ medicine_id: medId, quantity: qty }] };
             const response = await secureFetch(`${API_URL}/sales`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-            if (response.ok) { alert("Sale logged into records safely!"); document.getElementById("saleForm").reset(); toggleMpesaFields(); }
+            if (response.ok) { 
+                alert("Sale logged into records safely!"); 
+                document.getElementById("saleForm").reset(); 
+                toggleMpesaFields(); 
+                fetchInventory(); // Instantly refreshes remaining items count in dropdown list
+            }
         });
     </script>
 </body>
 </html>
+
