@@ -72,7 +72,13 @@
             <h2>Log a Retail Transaction</h2>
             <div style="max-width: 500px; margin: 0 auto;">
                 <form id="saleForm">
-                    <div class="form-group"><label>Medicine ID</label><input type="number" id="saleMedicineId" required></div>
+                    <div class="form-group">
+    <label>Select Medicine Name</label>
+    <select id="saleMedicineId" required>
+        <option value="">-- Select Medicine --</option>
+    </select>
+</div>
+
                     <div class="form-group"><label>Quantity Sold</label><input type="number" id="saleQuantity" required value="1"></div>
                     <div class="form-group">
                         <label>Payment Mode</label>
