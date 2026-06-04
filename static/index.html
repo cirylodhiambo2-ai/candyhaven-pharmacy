@@ -139,17 +139,30 @@
             });
         }
 
-        document.getElementById("medicineForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const payload = {
-                name: document.getElementById("name").value,
-                stock_quantity: parseInt(document.getElementById("quantity").value),
-                selling_price: parseFloat(document.getElementById("sellingPrice").value)
-            };
-            await supabase.from('medicines').insert([payload]);
-            alert("Added!");
-            fetchInventory();
-        });
+        document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    // Get values from your input fields
+    const user = document.getElementById("loginUser").value;
+    const pass = document.getElementById("loginPass").value;
+
+    // Use Supabase instead of the old fetch(127.0.0.1...)
+    const { data, error } = await supabase
+        .from('users') // Make sure this table exists in Supabase!
+        .select('*')
+        .eq('username', user)
+        .eq('password', pass);
+
+    if (data && data.length > 0) {
+        console.log("Login successful!");
+        document.getElementById("loginOverlay").style.display = "none";
+        document.getElementById("dashboardMain").style.display = "block";
+        fetchInventory(); // This now connects to Supabase too
+    } else {
+        alert("Authentication failed! Check credentials or DB connection.");
+        console.error("Login Error:", error);
+    }
+});
 
         function logout() { location.reload(); }
         function switchPanel(p, btn) {
